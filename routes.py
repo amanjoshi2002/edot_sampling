@@ -71,8 +71,16 @@ def chat():
                 return jsonify({"error": "Vector store is not available."}), 500
 
         relevant_docs = store.similarity_search(user_message, k=2)
-        context = "\n".join([doc.page_content for doc in relevant_docs])
-        return process_chat(user_message, context)
+        # Extract document sources and content
+        context_info = [{
+            'content': doc.page_content,
+            'source': doc.metadata.get('source', 'Unknown'),
+            'page': doc.metadata.get('page', 1) if doc.metadata.get('source', '').endswith('.pdf') else None
+        } for doc in relevant_docs]
+        
+        # Join content for context while preserving source information
+        context = '\n'.join(doc['content'] for doc in context_info)
+        return process_chat(user_message, context, context_info)
     except Exception as e:
         print(f"Error in chat: {str(e)}")
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
